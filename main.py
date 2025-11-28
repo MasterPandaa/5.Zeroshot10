@@ -1,7 +1,8 @@
-import sys
 import random
+import sys
+from typing import Dict, List, Optional, Tuple
+
 import pygame
-from typing import List, Tuple, Optional, Dict
 
 # =========================
 # Configuration
@@ -13,56 +14,58 @@ FPS = 60
 
 # Colors
 LIGHT = (238, 238, 210)  # light squares
-DARK = (118, 150, 86)    # dark squares
+DARK = (118, 150, 86)  # dark squares
 SELECT_COLOR = (246, 246, 105)
 MOVE_HIGHLIGHT = (186, 202, 68)
 CHECK_HIGHLIGHT = (255, 80, 80)
 TEXT_COLOR = (30, 30, 30)
 
-WHITE = 'w'
-BLACK = 'b'
+WHITE = "w"
+BLACK = "b"
 
 # Piece types
-PAWN = 'P'
-ROOK = 'R'
-KNIGHT = 'N'
-BISHOP = 'B'
-QUEEN = 'Q'
-KING = 'K'
+PAWN = "P"
+ROOK = "R"
+KNIGHT = "N"
+BISHOP = "B"
+QUEEN = "Q"
+KING = "K"
 
 Piece = Tuple[str, str]  # (color, type)
-Move = Tuple[Tuple[int, int], Tuple[int, int], Optional[str]]  # ((r1,c1),(r2,c2), promotion)
+Move = Tuple[
+    Tuple[int, int], Tuple[int, int], Optional[str]
+]  # ((r1,c1),(r2,c2), promotion)
 
 # Unicode mapping for pieces
 UNICODE_PIECES: Dict[Piece, str] = {
-    (WHITE, KING):   '♔',
-    (WHITE, QUEEN):  '♕',
-    (WHITE, ROOK):   '♖',
-    (WHITE, BISHOP): '♗',
-    (WHITE, KNIGHT): '♘',
-    (WHITE, PAWN):   '♙',
-    (BLACK, KING):   '♚',
-    (BLACK, QUEEN):  '♛',
-    (BLACK, ROOK):   '♜',
-    (BLACK, BISHOP): '♝',
-    (BLACK, KNIGHT): '♞',
-    (BLACK, PAWN):   '♟',
+    (WHITE, KING): "♔",
+    (WHITE, QUEEN): "♕",
+    (WHITE, ROOK): "♖",
+    (WHITE, BISHOP): "♗",
+    (WHITE, KNIGHT): "♘",
+    (WHITE, PAWN): "♙",
+    (BLACK, KING): "♚",
+    (BLACK, QUEEN): "♛",
+    (BLACK, ROOK): "♜",
+    (BLACK, BISHOP): "♝",
+    (BLACK, KNIGHT): "♞",
+    (BLACK, PAWN): "♟",
 }
 
 # Fallback letters if font lacks glyphs
 LETTER_PIECES: Dict[Piece, str] = {
-    (WHITE, KING):   'K',
-    (WHITE, QUEEN):  'Q',
-    (WHITE, ROOK):   'R',
-    (WHITE, BISHOP): 'B',
-    (WHITE, KNIGHT): 'N',
-    (WHITE, PAWN):   'P',
-    (BLACK, KING):   'k',
-    (BLACK, QUEEN):  'q',
-    (BLACK, ROOK):   'r',
-    (BLACK, BISHOP): 'b',
-    (BLACK, KNIGHT): 'n',
-    (BLACK, PAWN):   'p',
+    (WHITE, KING): "K",
+    (WHITE, QUEEN): "Q",
+    (WHITE, ROOK): "R",
+    (WHITE, BISHOP): "B",
+    (WHITE, KNIGHT): "N",
+    (WHITE, PAWN): "P",
+    (BLACK, KING): "k",
+    (BLACK, QUEEN): "q",
+    (BLACK, ROOK): "r",
+    (BLACK, BISHOP): "b",
+    (BLACK, KNIGHT): "n",
+    (BLACK, PAWN): "p",
 }
 
 MATERIAL_VALUES = {PAWN: 1, KNIGHT: 3, BISHOP: 3, ROOK: 5, QUEEN: 9, KING: 0}
@@ -71,7 +74,7 @@ MATERIAL_VALUES = {PAWN: 1, KNIGHT: 3, BISHOP: 3, ROOK: 5, QUEEN: 9, KING: 0}
 class ChessGame:
     def __init__(self):
         pygame.init()
-        pygame.display.set_caption('Pygame Chess - Human (White) vs Random AI (Black)')
+        pygame.display.set_caption("Pygame Chess - Human (White) vs Random AI (Black)")
         self.screen = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
 
@@ -83,13 +86,19 @@ class ChessGame:
         self.selected: Optional[Tuple[int, int]] = None
         self.legal_moves_from_selected: List[Move] = []
         self.game_over: bool = False
-        self.status_message: str = ''
+        self.status_message: str = ""
         self.ai_delay_ms = 400
         self._ai_move_due_at: Optional[int] = None
 
     def _load_font(self) -> pygame.font.Font:
         # Common fonts that include chess unicode on Windows/macOS/Linux
-        preferred = ['Segoe UI Symbol', 'DejaVu Sans', 'Arial Unicode MS', 'Noto Sans Symbols2', 'Noto Sans Symbols']
+        preferred = [
+            "Segoe UI Symbol",
+            "DejaVu Sans",
+            "Arial Unicode MS",
+            "Noto Sans Symbols2",
+            "Noto Sans Symbols",
+        ]
         for name in preferred:
             try:
                 font = pygame.font.SysFont(name, SQ_SIZE - 10)
@@ -103,7 +112,9 @@ class ChessGame:
         return pygame.font.SysFont(None, SQ_SIZE - 10)
 
     def _create_start_position(self) -> List[List[Optional[Piece]]]:
-        board: List[List[Optional[Piece]]] = [[None for _ in range(COLS)] for _ in range(ROWS)]
+        board: List[List[Optional[Piece]]] = [
+            [None for _ in range(COLS)] for _ in range(ROWS)
+        ]
         # Place pawns
         for c in range(COLS):
             board[6][c] = (WHITE, PAWN)
@@ -124,7 +135,9 @@ class ChessGame:
     def clone_board(self) -> List[List[Optional[Piece]]]:
         return [row.copy() for row in self.board]
 
-    def find_king(self, color: str, board: Optional[List[List[Optional[Piece]]]] = None) -> Tuple[int, int]:
+    def find_king(
+        self, color: str, board: Optional[List[List[Optional[Piece]]]] = None
+    ) -> Tuple[int, int]:
         b = board if board is not None else self.board
         for r in range(ROWS):
             for c in range(COLS):
@@ -136,7 +149,9 @@ class ChessGame:
     # =========================
     # Move Generation (Pseudo-legal)
     # =========================
-    def generate_pseudo_legal_moves(self, color: str, board: Optional[List[List[Optional[Piece]]]] = None) -> List[Move]:
+    def generate_pseudo_legal_moves(
+        self, color: str, board: Optional[List[List[Optional[Piece]]]] = None
+    ) -> List[Move]:
         b = board if board is not None else self.board
         moves: List[Move] = []
         for r in range(ROWS):
@@ -150,16 +165,43 @@ class ChessGame:
                 elif pt == KNIGHT:
                     moves.extend(self._knight_moves(r, c, color, b))
                 elif pt == BISHOP:
-                    moves.extend(self._sliding_moves(r, c, color, b, [(-1, -1), (-1, 1), (1, -1), (1, 1)]))
+                    moves.extend(
+                        self._sliding_moves(
+                            r, c, color, b, [(-1, -1), (-1, 1), (1, -1), (1, 1)]
+                        )
+                    )
                 elif pt == ROOK:
-                    moves.extend(self._sliding_moves(r, c, color, b, [(-1, 0), (1, 0), (0, -1), (0, 1)]))
+                    moves.extend(
+                        self._sliding_moves(
+                            r, c, color, b, [(-1, 0), (1, 0), (0, -1), (0, 1)]
+                        )
+                    )
                 elif pt == QUEEN:
-                    moves.extend(self._sliding_moves(r, c, color, b, [(-1, -1), (-1, 1), (1, -1), (1, 1), (-1, 0), (1, 0), (0, -1), (0, 1)]))
+                    moves.extend(
+                        self._sliding_moves(
+                            r,
+                            c,
+                            color,
+                            b,
+                            [
+                                (-1, -1),
+                                (-1, 1),
+                                (1, -1),
+                                (1, 1),
+                                (-1, 0),
+                                (1, 0),
+                                (0, -1),
+                                (0, 1),
+                            ],
+                        )
+                    )
                 elif pt == KING:
                     moves.extend(self._king_moves(r, c, color, b))
         return moves
 
-    def _pawn_moves(self, r: int, c: int, color: str, b: List[List[Optional[Piece]]]) -> List[Move]:
+    def _pawn_moves(
+        self, r: int, c: int, color: str, b: List[List[Optional[Piece]]]
+    ) -> List[Move]:
         moves: List[Move] = []
         dir = -1 if color == WHITE else 1
         start_row = 6 if color == WHITE else 1
@@ -179,7 +221,11 @@ class ChessGame:
         # Captures
         for dc in (-1, 1):
             nc = c + dc
-            if self.in_bounds(next_r, nc) and b[next_r][nc] is not None and b[next_r][nc][0] != color:
+            if (
+                self.in_bounds(next_r, nc)
+                and b[next_r][nc] is not None
+                and b[next_r][nc][0] != color
+            ):
                 if next_r == 0 or next_r == 7:
                     moves.append(((r, c), (next_r, nc), QUEEN))
                 else:
@@ -187,9 +233,20 @@ class ChessGame:
         # Note: En passant omitted for simplicity
         return moves
 
-    def _knight_moves(self, r: int, c: int, color: str, b: List[List[Optional[Piece]]]) -> List[Move]:
+    def _knight_moves(
+        self, r: int, c: int, color: str, b: List[List[Optional[Piece]]]
+    ) -> List[Move]:
         moves: List[Move] = []
-        for dr, dc in [(-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)]:
+        for dr, dc in [
+            (-2, -1),
+            (-2, 1),
+            (-1, -2),
+            (-1, 2),
+            (1, -2),
+            (1, 2),
+            (2, -1),
+            (2, 1),
+        ]:
             nr, nc = r + dr, c + dc
             if not self.in_bounds(nr, nc):
                 continue
@@ -197,7 +254,14 @@ class ChessGame:
                 moves.append(((r, c), (nr, nc), None))
         return moves
 
-    def _sliding_moves(self, r: int, c: int, color: str, b: List[List[Optional[Piece]]], directions: List[Tuple[int, int]]) -> List[Move]:
+    def _sliding_moves(
+        self,
+        r: int,
+        c: int,
+        color: str,
+        b: List[List[Optional[Piece]]],
+        directions: List[Tuple[int, int]],
+    ) -> List[Move]:
         moves: List[Move] = []
         for dr, dc in directions:
             nr, nc = r + dr, c + dc
@@ -212,7 +276,9 @@ class ChessGame:
                 nc += dc
         return moves
 
-    def _king_moves(self, r: int, c: int, color: str, b: List[List[Optional[Piece]]]) -> List[Move]:
+    def _king_moves(
+        self, r: int, c: int, color: str, b: List[List[Optional[Piece]]]
+    ) -> List[Move]:
         moves: List[Move] = []
         for dr in (-1, 0, 1):
             for dc in (-1, 0, 1):
@@ -229,7 +295,13 @@ class ChessGame:
     # =========================
     # Check / Legal Move Filtering
     # =========================
-    def is_square_attacked(self, r: int, c: int, by_color: str, board: Optional[List[List[Optional[Piece]]]] = None) -> bool:
+    def is_square_attacked(
+        self,
+        r: int,
+        c: int,
+        by_color: str,
+        board: Optional[List[List[Optional[Piece]]]] = None,
+    ) -> bool:
         b = board if board is not None else self.board
         opp = by_color
         me = WHITE if opp == BLACK else BLACK
@@ -244,7 +316,16 @@ class ChessGame:
                     return True
 
         # 2) Knight attacks
-        for dr, dc in [(-2, -1), (-2, 1), (-1, -2), (-1, 2), (1, -2), (1, 2), (2, -1), (2, 1)]:
+        for dr, dc in [
+            (-2, -1),
+            (-2, 1),
+            (-1, -2),
+            (-1, 2),
+            (1, -2),
+            (1, 2),
+            (2, -1),
+            (2, 1),
+        ]:
             nr, nc = r + dr, c + dc
             if self.in_bounds(nr, nc):
                 p = b[nr][nc]
@@ -288,7 +369,9 @@ class ChessGame:
 
         return False
 
-    def in_check(self, color: str, board: Optional[List[List[Optional[Piece]]]] = None) -> bool:
+    def in_check(
+        self, color: str, board: Optional[List[List[Optional[Piece]]]] = None
+    ) -> bool:
         b = board if board is not None else self.board
         kr, kc = self.find_king(color, b)
         if kr == -1:
@@ -296,7 +379,9 @@ class ChessGame:
         opp = WHITE if color == BLACK else BLACK
         return self.is_square_attacked(kr, kc, opp, b)
 
-    def make_move_on_board(self, b: List[List[Optional[Piece]]], move: Move) -> List[List[Optional[Piece]]]:
+    def make_move_on_board(
+        self, b: List[List[Optional[Piece]]], move: Move
+    ) -> List[List[Optional[Piece]]]:
         newb = [row.copy() for row in b]
         (r1, c1), (r2, c2), promo = move
         piece = newb[r1][c1]
@@ -356,7 +441,9 @@ class ChessGame:
             # Select a white piece
             if clicked_piece is not None and clicked_piece[0] == WHITE:
                 self.selected = (r, c)
-                self.legal_moves_from_selected = [m for m in self.generate_legal_moves(WHITE) if m[0] == (r, c)]
+                self.legal_moves_from_selected = [
+                    m for m in self.generate_legal_moves(WHITE) if m[0] == (r, c)
+                ]
         else:
             # Attempt to move if clicked square is a legal target
             for mv in self.legal_moves_from_selected:
@@ -372,12 +459,16 @@ class ChessGame:
                     self._update_status_after_move()
                     if not self.game_over:
                         # Schedule AI move after delay
-                        self._ai_move_due_at = pygame.time.get_ticks() + self.ai_delay_ms
+                        self._ai_move_due_at = (
+                            pygame.time.get_ticks() + self.ai_delay_ms
+                        )
                     return
             # If not a legal move, either reselect or clear selection
             if clicked_piece is not None and clicked_piece[0] == WHITE:
                 self.selected = (r, c)
-                self.legal_moves_from_selected = [m for m in self.generate_legal_moves(WHITE) if m[0] == (r, c)]
+                self.legal_moves_from_selected = [
+                    m for m in self.generate_legal_moves(WHITE) if m[0] == (r, c)
+                ]
             else:
                 self.selected = None
                 self.legal_moves_from_selected = []
@@ -389,16 +480,22 @@ class ChessGame:
         if not legal:
             if self.in_check(self.turn):
                 self.game_over = True
-                self.status_message = 'Checkmate! {} wins.'.format('White' if opp == WHITE else 'Black')
+                self.status_message = "Checkmate! {} wins.".format(
+                    "White" if opp == WHITE else "Black"
+                )
             else:
                 self.game_over = True
-                self.status_message = 'Stalemate! Draw.'
+                self.status_message = "Stalemate! Draw."
         else:
             # Update check info
             if self.in_check(self.turn):
-                self.status_message = '{} to move: Check!'.format('White' if self.turn == WHITE else 'Black')
+                self.status_message = "{} to move: Check!".format(
+                    "White" if self.turn == WHITE else "Black"
+                )
             else:
-                self.status_message = '{} to move.'.format('White' if self.turn == WHITE else 'Black')
+                self.status_message = "{} to move.".format(
+                    "White" if self.turn == WHITE else "Black"
+                )
 
     # =========================
     # Rendering
@@ -407,12 +504,16 @@ class ChessGame:
         for r in range(ROWS):
             for c in range(COLS):
                 color = LIGHT if (r + c) % 2 == 0 else DARK
-                pygame.draw.rect(self.screen, color, (c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+                pygame.draw.rect(
+                    self.screen, color, (c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE)
+                )
 
         # Highlight selected square
         if self.selected is not None:
             r, c = self.selected
-            pygame.draw.rect(self.screen, SELECT_COLOR, (c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE))
+            pygame.draw.rect(
+                self.screen, SELECT_COLOR, (c * SQ_SIZE, r * SQ_SIZE, SQ_SIZE, SQ_SIZE)
+            )
 
         # Highlight legal moves from selected
         for mv in self.legal_moves_from_selected:
@@ -448,7 +549,9 @@ class ChessGame:
                 # Choose piece color for text: black pieces darker
                 piece_color = (15, 15, 15) if color == BLACK else (240, 240, 240)
                 text = self.font.render(char, True, piece_color)
-                rect = text.get_rect(center=(c * SQ_SIZE + SQ_SIZE // 2, r * SQ_SIZE + SQ_SIZE // 2))
+                rect = text.get_rect(
+                    center=(c * SQ_SIZE + SQ_SIZE // 2, r * SQ_SIZE + SQ_SIZE // 2)
+                )
                 # Add slight outline for contrast
                 outline = self.font.render(char, True, (0, 0, 0))
                 outline_rect = outline.get_rect(center=rect.center)
@@ -457,8 +560,14 @@ class ChessGame:
 
     def draw_status(self):
         # Render a small status bar at top-left using a smaller font
-        small_font = pygame.font.SysFont(self.font.get_name() if hasattr(self.font, 'get_name') else None, 20)
-        msg = self.status_message if self.status_message else ('White to move.' if self.turn == WHITE else 'Black to move.')
+        small_font = pygame.font.SysFont(
+            self.font.get_name() if hasattr(self.font, "get_name") else None, 20
+        )
+        msg = (
+            self.status_message
+            if self.status_message
+            else ("White to move." if self.turn == WHITE else "Black to move.")
+        )
         text = small_font.render(msg, True, TEXT_COLOR)
         self.screen.blit(text, (8, 8))
 
@@ -502,6 +611,6 @@ class ChessGame:
         sys.exit()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     game = ChessGame()
     game.run()
